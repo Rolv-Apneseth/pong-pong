@@ -40,13 +40,15 @@ class Goal():
 
 
 class Ball():
+    # So ball waits before mobing in a direction
     COOLDOWN = 30  # 0.5 seconds at 60 fps
 
     def __init__(self, x, y, vel, radius):
         self.x = x
         self.y = y
-        self.xvel = vel
-        self.yvel = vel
+        # Ball will therefore move in a random direction
+        self.xvel = vel * random.choice([1, -1])
+        self.yvel = vel * random.choice([1, -1])
         self.cooldown_counter = self.COOLDOWN
         self.radius = radius
 
@@ -75,6 +77,9 @@ def game_loop(window, WIDTH, HEIGHT):
     win_timer = 0
     who_won = None
 
+    # So players can't spam balls
+    ball_spawn_cooldown = 0
+
     BALL_RADIUS = 15
     BALL_VELOCITY = 3
     # Starting location for the ball, and place where it respawns
@@ -94,7 +99,8 @@ def game_loop(window, WIDTH, HEIGHT):
     player2 = Paddle(round(WIDTH * 0.85), round(HEIGHT * 0.93),
                      round(WIDTH * 0.1), round(HEIGHT * 0.02))
 
-    ball = Ball(DEFAULT_X, DEFAULT_Y, BALL_VELOCITY, BALL_RADIUS)
+    balls = []
+    balls.append(Ball(DEFAULT_X, DEFAULT_Y, BALL_VELOCITY, BALL_RADIUS))
 
     score_label_font = pygame.font.SysFont("arial", 20)
     win_label_font = pygame.font.SysFont("arial", 40)
@@ -112,7 +118,8 @@ def game_loop(window, WIDTH, HEIGHT):
         player1.draw(window)
         player2.draw(window)
 
-        ball.draw(window)
+        for ball in balls:
+            ball.draw(window)
 
         # Player Score Labels
         player1_score = score_label_font.render(
@@ -157,6 +164,8 @@ def game_loop(window, WIDTH, HEIGHT):
             else:
                 continue
 
+        ball_spawn_cooldown += 1
+
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 running = False
@@ -174,28 +183,31 @@ def game_loop(window, WIDTH, HEIGHT):
             player2.move(-PADDLE_VELOCITY)
         if keys[pygame.K_RIGHT] and player2.x + PADDLE_VELOCITY + player2.width < WIDTH:  # right
             player2.move(PADDLE_VELOCITY)
+        # Either player can press spacbar to create another ball
+        if keys[pygame.K_SPACE]:
+            if ball_spawn_cooldown >= 120:
+                balls.append(Ball(DEFAULT_X, DEFAULT_Y,
+                                  BALL_VELOCITY, BALL_RADIUS))
+                ball_spawn_cooldown = 0
 
         # Ball movement and collisions
-        ball.move()
-        # Contain in the x boundaries of the screen
-        if ball.x < ball.radius or ball.x > WIDTH - ball.radius:
-            ball.xvel *= -1
-        # Collision with paddles, causes ball velocity to reverse
-        if ball.y - ball.radius < player1.y + player1.height and player1.x < ball.x < player1.x + player1.width:
-            ball.yvel *= -1
-        if ball.y + ball.radius > player2.y and player2.x < ball.x < player2.x + player2.width:
-            ball.yvel *= -1
-        # Collision with goals, point added to respective player
-        if ball.y + ball.radius > bottom_goal.y:
-            ball.reset_cooldown()
-            ball.x, ball.y = DEFAULT_X, DEFAULT_Y
-            ball.xvel = random.choice([1, -1]) * BALL_VELOCITY
-            ball.yvel = random.choice([1, -1]) * BALL_VELOCITY
-            player1.points += 1
-        # Two different if statements so that point can be awarded to the correct player
-        if ball.y - ball.radius < top_goal.y + top_goal.height:
-            ball.reset_cooldown()
-            ball.x, ball.y = DEFAULT_X, DEFAULT_Y
-            ball.xvel = random.choice([1, -1]) * BALL_VELOCITY
-            ball.yvel = random.choice([1, -1]) * BALL_VELOCITY
-            player2.points += 1
+        for ball in balls:
+            ball.move()
+            # Contain in the x boundaries of the screen
+            if ball.x < ball.radius or ball.x > WIDTH - ball.radius:
+                ball.xvel *= -1
+            # Collision with paddles, causes ball velocity to reverse
+            if ball.y - ball.radius < player1.y + player1.height and player1.x < ball.x < player1.x + player1.width:
+                ball.yvel *= -1
+            if ball.y + ball.radius > player2.y and player2.x < ball.x < player2.x + player2.width:
+                ball.yvel *= -1
+            # Collision with goals, point added to respective player
+            if ball.y + ball.radius > bottom_goal.y:
+                player1.points += 1
+                balls.remove(ball)
+            # Two different if statements so that point can be awarded to the correct player
+            if ball.y - ball.radius < top_goal.y + top_goal.height:
+                # ball.xvel = random.choice([1, -1]) * BALL_VELOCITY
+                # ball.yvel = random.choice([1, -1]) * BALL_VELOCITY
+                player2.points += 1
+                balls.remove(ball)
