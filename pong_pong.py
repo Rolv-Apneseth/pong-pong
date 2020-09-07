@@ -156,10 +156,10 @@ def game_loop(window, WIDTH, HEIGHT):
             win = True
             who_won = "Player 2"
 
-        # Keeps a 1 second timer (at 60fps) when a player has won before ending the loop
+        # Keeps a 3 second timer when a player has won before ending the loop
         if win:
             win_timer += 1
-            if win_timer >= 60:
+            if win_timer >= FPS * 3:
                 running = False
             else:
                 continue
